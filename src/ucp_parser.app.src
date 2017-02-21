@@ -1,0 +1,9 @@
+{application, ucp_parser,
+ [
+  {description, "A parser for UCP protocol PDUs"},
+  {vsn, "0.0.1"},
+  {modules, [ucp, ucp_arg_syntax, ucp_syntax]},
+  {registered, []},
+  {applications, [kernel, stdlib]},
+  {env, []}
+ ]}.
