@@ -1,7 +1,35 @@
 -module(ucp).
 
--export([parse/1, pack/1]).
+-export([parse/1, pack/1, parse_stream/1]).
 
+parse_stream(Bytes) ->
+    case re:run(Bytes, "(\x02[^\x02\x03]+)",
+                [global, {capture, [1], list}]) of
+        nomatch -> {error, incomplete, Bytes};
+        {match, Frames} ->
+            case parse_frames(Frames, []) of
+                [{_, parse_error}] -> {error, incomplete, Bytes};
+                [{_, parse_error} | Ucps] ->
+                    [LastFrame|_] = lists:last(Frames),
+                    {Ucps, list_to_binary(LastFrame)};
+                Ucps -> {Ucps, <<>>}
+            end
+    end.
+
+parse_frames([], Ucps) -> Ucps;
+parse_frames([[Frame|_]|Frames], Ucps) ->
+    FramePatched = Frame++[3],
+    parse_frames(Frames, [
+        case (catch parse(FramePatched)) of
+            {'EXIT', _} ->
+                {list_to_binary(FramePatched), parse_error};
+            Ucp ->
+                {list_to_binary(FramePatched), Ucp}
+        end
+        | Ucps]).
+
+parse(Bytes) when is_binary(Bytes) ->
+    parse(binary_to_list(Bytes));
 parse(UcpString) when is_list(UcpString) ->
     case {hd(UcpString), lists:last(UcpString)} of
         {2,3} -> ucp_syntax:parse(UcpString);
