@@ -50,7 +50,8 @@
 
 %%% API EXPORTS
 
--export([make_30/2, make_ms_message_transfer/2,
+-export([make_01/5, make_call_input/5,
+         make_30/2, make_ms_message_transfer/2,
          make_31/3, make_mt_alert/3,
          make_51/5, make_submit_sm/5,
          make_52/5, make_delivery_sm/5,
@@ -76,7 +77,37 @@
 %%% Functions for building specific messages
 %%% ----------------------------------------------------------
 
-%%% TODO: implement make 01
+%%% @doc Make a call input (01) message.
+%%% @spec make_01(Trn,AdC,OAdC,Msg,UCP_opt) -> Mess
+%%%  Trn = integer()
+%%%  AdC = string()
+%%%  UCP_opt = ucp()
+%%%  Mess = binary() | string()
+%%% @end
+make_01(Trn, AdC, OAdC, Msg, UCP_opt) ->
+    UCP_opt_mt =
+        case get_value(mt, UCP_opt) of
+            undefined ->
+                MT = ?UCP_MT_ALPHANUMERIC,
+                [{mt, MT} | UCP_opt];
+            _ ->
+                UCP_opt
+        end,
+    UCP_data =
+        [{adc, AdC},
+         {oadc, OAdC},
+         {msg, Msg} | UCP_opt_mt],
+    Data = make_01_data(UCP_data),
+    finalize(Data, Trn, "O", 1).
+
+%%% @doc Same as make_01/5.
+%%% @spec make_call_input(Trn,AdC,OAdC,Msg,UCP_opt) -> Mess
+%%%  Trn = integer()
+%%%  AdC = string()
+%%%  Mess = string()
+%%% @end
+make_call_input(Trn, AdC, OAdC, Msg, UCP_opt) ->
+    make_01(Trn, AdC, OAdC, Msg, UCP_opt).
 
 %%% TODO: implement make 02
 
@@ -331,7 +362,8 @@ make_result(UCP) ->
 %%% @spec make_ack(UCP::ucp()) -> Mess::string()
 make_ack(UCP) ->
     case get_value(ot, UCP) of
-        %% TODO - implement make ack for 01
+        1 ->
+            make_ack_generic(UCP);
         %% TODO - implement make ack for 02
         %% TODO - implement make ack for 03
         30 ->
@@ -441,6 +473,16 @@ pack(Ucp) ->
     case proplists:get_value(type, Ucp) of
         "O" ->
             case Ot of
+                01 ->
+                    AdC = proplists:get_value(adc, Ucp),
+                    OAdC = proplists:get_value(oadc, Ucp),
+                    Msg = proplists:get_value(msg, Ucp),
+                    make_01(Trn, AdC, OAdC, Msg, Ucp);
+                51 ->
+                    AdC = proplists:get_value(adc, Ucp),
+                    OAdC = proplists:get_value(oadc, Ucp),
+                    Msg = proplists:get_value(msg, Ucp),
+                    make_51(Trn, AdC, OAdC, Msg, Ucp);
                 57 ->
                     AdC = proplists:get_value(adc, Ucp),
                     Mt = proplists:get_value(mt, Ucp),
@@ -536,8 +578,10 @@ prf(C) ->
 %%% UCP keyvalue list of arguments.
 %%% ----------------------------------------------------------
 
-
-%%% TODO: implement make 01 data
+make_01_data(UCP) ->
+    %% Special treatment of msg field is needed
+    UCP2 = encode_msg_field(UCP),
+    make_data(data_template_01(), UCP2, "").
 
 %%% TODO: implement make 02 data
 
@@ -932,11 +976,11 @@ parse_template([{Key,{ip,_List}}|KT], [Val|VT], Acc) ->
 %%%   IPType = {ip, [{Name:atom(), Value:integer()}]}
 
 data_template_01() ->
-    [{adc,numstr,16},  %% Address of recipient
-     {oadc,numstr,16}, %% Address of originator
-     {ac,chrstr},      %% Authentication code originator
-     {mt,num,1},       %% Message type
-     {msg,chrstr}].    %% Message. TODO: needs special treatment
+    [{adc,numstr,16},   %% Address of recipient
+     {oadc,numstr,16},  %% Address of originator
+     {ac,chrstr},       %% Authentication code originator
+     {mt,num,1},        %% Message type
+     {msg,chrstr,640}]. %% Message : Special treatment
 
 data_template_02() ->
     [{npl,numstr},       %% Number of rads
