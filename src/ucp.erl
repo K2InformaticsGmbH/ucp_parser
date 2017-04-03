@@ -1,6 +1,6 @@
 -module(ucp).
 
--export([parse/1, pack/1, parse_stream/1]).
+-export([parse/1, pack/1, parse_stream/1, cmdstr/2]).
 
 parse_stream(Bytes) ->
     case re:run(Bytes, "(\x02[^\x02\x03]+)",
@@ -40,6 +40,32 @@ parse(UcpString) when is_list(UcpString) ->
 
 pack([{A,_}|_] = Ucp) when is_atom(A) ->
     ucp_syntax:pack(Ucp).
+
+cmdstr(Cmd, Type) ->
+    <<(cmd(Cmd))/binary,
+      (if Type == response -> <<"_resp">>;
+          true -> <<>> end)/binary>>.
+
+-compile({inline,[cmd/1]}).
+cmd(01) -> <<"call_input_01">>;
+cmd(02) -> <<"multiple_address_call_input_02">>;
+cmd(03) -> <<"call_input_with_supplementary_services_03">>;
+cmd(30) -> <<"sms_message_transfer_30">>;
+cmd(31) -> <<"smt_alert_31">>;
+cmd(51) -> <<"submit_short_message_51">>;
+cmd(52) -> <<"deliver_short_message_52">>;
+cmd(53) -> <<"deliver_notification_53">>;
+cmd(54) -> <<"modify_message_54">>;
+cmd(55) -> <<"inquiry_message_55">>;
+cmd(56) -> <<"delete_message_56">>;
+cmd(57) -> <<"response_inquiry_message_57">>;
+cmd(58) -> <<"response_delete_message_smsc_58">>;
+cmd(60) -> <<"session_management_60">>;
+cmd(61) -> <<"list_management_61">>;
+cmd(C) when is_list(C)      -> <<"unknown_",(list_to_binary(C))/binary>>;
+cmd(C) when is_binary(C)    -> <<"unknown_",C/binary>>;
+cmd(C) when is_integer(C)   -> <<"unknown_",(integer_to_binary(C))/binary>>;
+cmd(C) -> <<"unknown_",(list_to_binary(io_lib:format("~p",[C])))/binary>>.
 
 -ifdef(TEST).
 %%
