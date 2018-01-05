@@ -71,8 +71,7 @@ cmd(C) -> <<"unknown_",(list_to_binary(io_lib:format("~p",[C])))/binary>>.
 -spec(decode(Str :: list() | binary()) -> {ok, map()} | {error, binary()}).
 decode(Str) when is_list(Str); is_binary(Str) ->
     try
-        DecStr = parse(Str),
-        {ok, lists:foldl(fun pl_to_map/2, #{}, DecStr)}
+        {ok, pl_to_map(parse(Str))}
     catch
        _:_ ->
            io:format("Error: ~p~n", [erlang:get_stacktrace()]),
@@ -80,6 +79,10 @@ decode(Str) when is_list(Str); is_binary(Str) ->
     end;
 decode(_) ->
     {error, <<"Input to decode should be either binary or string">>}.
+
+-spec(pl_to_map(list()) -> map()).
+pl_to_map(PL) ->
+    lists:foldl(fun pl_to_map/2, #{}, PL).
 
 -spec(pl_to_map({atom(), term()}, map()) -> map()).
 pl_to_map({K, V}, AccMap) when is_list(V) ->
@@ -89,11 +92,15 @@ pl_to_map({K, V}, AccMap) ->
 
 -spec(encode(PDU :: map()) -> {ok, binary()} | {error, binary()}).
 encode(PDU) when is_map(PDU) ->
-    [2|T_DATA] = pack(maps:fold(fun map_to_pl/3, [], PDU)),
+    [2|T_DATA] = pack(map_to_pl(PDU)),
     [3|UCP_DATA] = lists:reverse(T_DATA),
     {ok, list_to_binary(lists:reverse(UCP_DATA))};
 encode(_) ->
     {error, <<"Input to encode should be map">>}.
+
+-spec(map_to_pl(map()) -> list()).
+map_to_pl(PDU) ->
+    maps:fold(fun map_to_pl/3, [], PDU).
 
 -spec(map_to_pl(term(), term(), list()) -> list()).
 map_to_pl(K, V, Acc) when is_binary(V) ->
