@@ -72,7 +72,7 @@ cmd(C) -> <<"unknown_",(list_to_binary(io_lib:format("~p",[C])))/binary>>.
 decode(Str) when is_list(Str); is_binary(Str) ->
     try
         DecStr = parse(Str),
-        {ok, pl_to_map(DecStr, #{})}
+        {ok, lists:foldl(fun pl_to_map/2, #{}, DecStr)}
     catch
        _:_ ->
            io:format("Error: ~p~n", [erlang:get_stacktrace()]),
@@ -81,13 +81,11 @@ decode(Str) when is_list(Str); is_binary(Str) ->
 decode(_) ->
     {error, <<"Input to decode should be either binary or string">>}.
 
--spec(pl_to_map(list(), map()) -> map()).
-pl_to_map([], AccMap) ->
-    AccMap;
-pl_to_map([{K, V}|R], AccMap) when is_list(V) ->
-    pl_to_map(R, AccMap#{atom_to_binary(K, utf8) => list_to_binary(V)});
-pl_to_map([{K, V}|R], AccMap) ->
-    pl_to_map(R, AccMap#{atom_to_binary(K, utf8) => V}).
+-spec(pl_to_map({atom(), term()}, map()) -> map()).
+pl_to_map({K, V}, AccMap) when is_list(V) ->
+    AccMap#{atom_to_binary(K, utf8) => list_to_binary(V)};
+pl_to_map({K, V}, AccMap) ->
+    AccMap#{atom_to_binary(K, utf8) => V}.
 
 -spec(encode(PDU :: map()) -> {ok, binary()} | {error, binary()}).
 encode(PDU) when is_map(PDU) ->
