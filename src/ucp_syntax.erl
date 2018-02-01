@@ -56,6 +56,7 @@
          make_51/5, make_submit_sm/5,
          make_52/5, make_delivery_sm/5,
          make_53/4, make_delivery_notification/4,
+         make_55/4, make_56/5,
          make_60/5, make_session_management/5]).
 
 -export([make_result/1,
@@ -270,9 +271,46 @@ make_delivery_notification(Trn, AdC, OAdC, UCP_opt) ->
 
 %%% TODO: implement make 54
 
-%%% TODO: implement make 55
+%%% @doc Make a Inquiry Message Operation (55) message.
+%%% @spec make_53(Trn,AdC,OAdC,UCP_opt) -> Mess
+%%%  Trn = integer()
+%%%  AdC = string()
+%%%  OAdC = string()
+%%%  UCP_opt = ucp()
+%%% @end
+make_55(Trn, AdC, OAdC, UCP_opt) ->
+    UCP_data =
+        [{adc, AdC},
+         {oadc, OAdC} | UCP_opt],
+    Data = make_5x_data(UCP_data),
+    finalize(Data, Trn, "O", 55).
 
-%%% TODO: implement make 56
+%%% @doc Make a Delete Message Operation (56) message.
+%%% @spec make_52(Trn,AdC,OAdC,Msg,UCP_opt) -> Mess
+%%%  Trn = integer()
+%%%  AdC = string()
+%%%  OAdC = string()
+%%%  Msg = string() | binary()
+%%%  UCP_opt = ucp()
+%%%  Mess = string()
+%%% @end
+make_56(Trn, AdC, OAdC, Msg, UCP_opt) ->
+    UCP_opt_mt =
+        case get_value(mt, UCP_opt) of
+            undefined ->
+                MT = ?UCP_MT_ALPHANUMERIC,
+                [{mt, MT} | UCP_opt];
+            _ ->
+                UCP_opt
+        end,
+    UCP_data =
+        [{adc, AdC},
+         {oadc, OAdC},
+         %% TODO: is it current UTC time ??
+         {scts, calendar:universal_time()},
+         {msg, Msg} | UCP_opt_mt],
+    Data = make_5x_data(UCP_data),
+    finalize(Data, Trn, "O", 56).
 
 %%% @doc Make a Response Inquiry Message Operation (57) message.
 %%% @spec make_57(Trn,AdC,Mt,UCP_opt) -> Mess
@@ -478,11 +516,33 @@ pack(Ucp) ->
                     OAdC = proplists:get_value(oadc, Ucp),
                     Msg = proplists:get_value(msg, Ucp),
                     make_01(Trn, AdC, OAdC, Msg, Ucp);
+                31 ->
+                    AdC = proplists:get_value(adc, Ucp),
+                    PID = proplists:get_value(pid, Ucp),
+                    make_31(Trn, AdC, PID);
                 51 ->
                     AdC = proplists:get_value(adc, Ucp),
                     OAdC = proplists:get_value(oadc, Ucp),
                     Msg = proplists:get_value(msg, Ucp),
                     make_51(Trn, AdC, OAdC, Msg, Ucp);
+                52 ->
+                    AdC = proplists:get_value(adc, Ucp),
+                    OAdC = proplists:get_value(oadc, Ucp),
+                    Msg = proplists:get_value(msg, Ucp),
+                    make_52(Trn, AdC, OAdC, Msg, Ucp);
+                53 ->
+                    AdC = proplists:get_value(adc, Ucp),
+                    OAdC = proplists:get_value(oadc, Ucp),
+                    make_53(Trn, AdC, OAdC, Ucp);
+                55 ->
+                    AdC = proplists:get_value(adc, Ucp),
+                    OAdC = proplists:get_value(oadc, Ucp),
+                    make_55(Trn, AdC, OAdC, Ucp);
+                56 ->
+                    AdC = proplists:get_value(adc, Ucp),
+                    OAdC = proplists:get_value(oadc, Ucp),
+                    Msg = proplists:get_value(msg, Ucp),
+                    make_56(Trn, AdC, OAdC, Msg, Ucp);
                 57 ->
                     AdC = proplists:get_value(adc, Ucp),
                     Mt = proplists:get_value(mt, Ucp),
@@ -500,7 +560,8 @@ pack(Ucp) ->
                     error({unimplemented, "O", Ot})
             end;
         "R" ->
-            error({unimplemented, "R", Ot})
+            make_ack(Ucp)
+%            error({unimplemented, "R", Ot})
     end.
 
 %%% ----------------------------------------------------------
@@ -732,7 +793,11 @@ make_mvp(UCP) ->
     end.
 
 make_adc_scts(UCP) ->
-    ADC = get_value(adc, UCP),
+    ADC =
+        case get_value(adc, UCP) of
+            undefined -> "";
+            AdC -> AdC
+        end,
     %% TODO: is it current UTC time ??
     SCTS = ucp_arg_syntax:make_time(12, calendar:universal_time()),
     ADC ++ ":" ++ SCTS.
@@ -832,7 +897,11 @@ parse_operation_data(UCP, Data) ->
     end.
 
 parse_01_data(UCP, Data) ->
-    parse_template(data_template_01(), Data) ++ UCP.
+    UCP_data = parse_template(data_template_01(), Data) ++ UCP,
+    %% Special treatment of msg and oadc fields needed
+    UCP_data2 = decode_msg_field(UCP_data),
+    UCP_data3 = decode_oadc_field(UCP_data2),
+    UCP ++ UCP_data3.
 
 parse_02_data(UCP, Data) ->
     parse_template(data_template_02(), Data) ++ UCP.
