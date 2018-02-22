@@ -1,7 +1,7 @@
 -module(ucp).
 
 -export([parse/1, pack/1, parse_stream/1, cmdstr/2, 
-         decode/1, encode/1, templates/0]).
+         decode/1, encode/1, info/0]).
 
 parse_stream(Bytes) ->
     case re:run(Bytes, "(\x02[^\x02\x03]+)",
@@ -116,28 +116,29 @@ map_to_pl(K, V, Acc) ->
 -define(ACK(_OR,_OT), ?BASE(_OR,_OT)#{<<"ack">> => <<"A">>}).
 -define(MSG(_OR,_OT), ?BASE(_OR,_OT)#{<<"adc">> => <<>>,<<"msg">> => <<>>,<<"mt">> => 3}).
 
-templates() ->
-    #{<<"O/01 Call Input">> =>                ?MSG($O,01),
-      <<"O/31 SMT Alert">> =>                 ?BASE($O,31)#{<<"adc">> => <<>>,<<"pid">> => 100},
-      <<"O/51 Submit Short Message">> =>      ?MSG($O,51)#{<<"oadc">> => <<>>},
-      <<"O/52 Deliver Short Message">> =>     ?MSG($O,52)#{<<"dcs">> => 0, <<"oadc">> => <<>>},
-      <<"O/53 Deliver Notification">> =>      ?MSG($O,53)#{<<"dst">> => 1,<<"oadc">> => <<>>,<<"rsn">> => 108},
-      <<"O/55 Inquiry Message">> =>           ?BASE($O,55)#{<<"adc">> => <<>>,<<"oadc">> => <<>>},
-      <<"O/56 Delete Message">> =>            ?MSG($O,56)#{<<"oadc">> => <<>>},
-      <<"O/57 Response Inquiry Message">> =>  ?MSG($O,57),
-      <<"O/58 Response Delete Message">> =>   ?MSG($O,58),
-      <<"O/60 Session Management">> =>        ?BASE($O,60)#{<<"oadc">> => <<>>,<<"pwd">> => <<>>,<<"styp">> => 1,<<"vers">> => 100},
+info() ->
+    #{templates =>
+        #{<<"O/01 Call Input">> =>                ?MSG($O,01),
+          <<"O/31 SMT Alert">> =>                 ?BASE($O,31)#{<<"adc">> => <<>>,<<"pid">> => 100},
+          <<"O/51 Submit Short Message">> =>      ?MSG($O,51)#{<<"oadc">> => <<>>},
+          <<"O/52 Deliver Short Message">> =>     ?MSG($O,52)#{<<"dcs">> => 0, <<"oadc">> => <<>>},
+          <<"O/53 Deliver Notification">> =>      ?MSG($O,53)#{<<"dst">> => 1,<<"oadc">> => <<>>,<<"rsn">> => 108},
+          <<"O/55 Inquiry Message">> =>           ?BASE($O,55)#{<<"adc">> => <<>>,<<"oadc">> => <<>>},
+          <<"O/56 Delete Message">> =>            ?MSG($O,56)#{<<"oadc">> => <<>>},
+          <<"O/57 Response Inquiry Message">> =>  ?MSG($O,57),
+          <<"O/58 Response Delete Message">> =>   ?MSG($O,58),
+          <<"O/60 Session Management">> =>        ?BASE($O,60)#{<<"oadc">> => <<>>,<<"pwd">> => <<>>,<<"styp">> => 1,<<"vers">> => 100},
 
-      <<"R/01 Call Input">> =>                ?ACK($R,01),
-      <<"R/31 SMT Alert">> =>                 ?ACK($R,31)#{<<"sm">> => <<"0000">>},
-      <<"R/51 Submit Short Message">> =>      ?ACK($R,51),
-      <<"R/52 Deliver Short Message">> =>     ?ACK($R,52),
-      <<"R/53 Deliver Notification">> =>      ?ACK($R,53),
-      <<"R/55 Inquiry Message">> =>           ?ACK($R,55),
-      <<"R/56 Delete Message">> =>            ?ACK($R,56),
-      <<"R/57 Response Inquiry Message">> =>  ?ACK($R,57),
-      <<"R/58 Response Delete Message">> =>   ?ACK($R,58),
-      <<"R/60 Session Management">> =>        ?ACK($R,60)}.
+          <<"R/01 Call Input">> =>                ?ACK($R,01),
+          <<"R/31 SMT Alert">> =>                 ?ACK($R,31)#{<<"sm">> => <<"0000">>},
+          <<"R/51 Submit Short Message">> =>      ?ACK($R,51),
+          <<"R/52 Deliver Short Message">> =>     ?ACK($R,52),
+          <<"R/53 Deliver Notification">> =>      ?ACK($R,53),
+          <<"R/55 Inquiry Message">> =>           ?ACK($R,55),
+          <<"R/56 Delete Message">> =>            ?ACK($R,56),
+          <<"R/57 Response Inquiry Message">> =>  ?ACK($R,57),
+          <<"R/58 Response Delete Message">> =>   ?ACK($R,58),
+          <<"R/60 Session Management">> =>        ?ACK($R,60)}}.
 
 -ifdef(TEST).
 %%
