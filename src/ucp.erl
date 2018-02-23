@@ -116,29 +116,51 @@ map_to_pl(K, V, Acc) ->
 -define(ACK(_OR,_OT), ?BASE(_OR,_OT)#{<<"ack">> => <<"A">>}).
 -define(MSG(_OR,_OT), ?BASE(_OR,_OT)#{<<"adc">> => <<>>,<<"msg">> => <<>>,<<"mt">> => 3}).
 
+-define(O01, <<"O/01 Call Input">>).
+-define(O31, <<"O/31 SMT Alert">>).
+-define(O51, <<"O/51 Submit Short Message">>).
+-define(O52, <<"O/52 Deliver Short Message">>).
+-define(O53, <<"O/53 Deliver Notification">>).
+-define(O55, <<"O/55 Inquiry Message">>).
+-define(O56, <<"O/56 Delete Message">>).
+-define(O57, <<"O/57 Response Inquiry Message">>).
+-define(O58, <<"O/58 Response Delete Message">>).
+-define(O60, <<"O/60 Session Management">>).
+-define(R01, <<"R/01 Call Input">>).
+-define(R31, <<"R/31 SMT Alert">>).
+-define(R51, <<"R/51 Submit Short Message">>).
+-define(R52, <<"R/52 Deliver Short Message">>).
+-define(R53, <<"R/53 Deliver Notification">>).
+-define(R55, <<"R/55 Inquiry Message">>).
+-define(R56, <<"R/56 Delete Message">>).
+-define(R57, <<"R/57 Response Inquiry Message">>).
+-define(R58, <<"R/58 Response Delete Message">>).
+-define(R60, <<"R/60 Session Management">>).
+
 info() ->
     #{templates =>
-        #{<<"O/01 Call Input">> =>                ?MSG($O,01),
-          <<"O/31 SMT Alert">> =>                 ?BASE($O,31)#{<<"adc">> => <<>>,<<"pid">> => 100},
-          <<"O/51 Submit Short Message">> =>      ?MSG($O,51)#{<<"oadc">> => <<>>},
-          <<"O/52 Deliver Short Message">> =>     ?MSG($O,52)#{<<"dcs">> => 0, <<"oadc">> => <<>>},
-          <<"O/53 Deliver Notification">> =>      ?MSG($O,53)#{<<"dst">> => 1,<<"oadc">> => <<>>,<<"rsn">> => 108},
-          <<"O/55 Inquiry Message">> =>           ?BASE($O,55)#{<<"adc">> => <<>>,<<"oadc">> => <<>>},
-          <<"O/56 Delete Message">> =>            ?MSG($O,56)#{<<"oadc">> => <<>>},
-          <<"O/57 Response Inquiry Message">> =>  ?MSG($O,57),
-          <<"O/58 Response Delete Message">> =>   ?MSG($O,58),
-          <<"O/60 Session Management">> =>        ?BASE($O,60)#{<<"oadc">> => <<>>,<<"pwd">> => <<>>,<<"styp">> => 1,<<"vers">> => 100},
+        #{?O01 => ?MSG($O,01),
+          ?O31 => ?BASE($O,31)#{<<"adc">> => <<>>,<<"pid">> => 100},
+          ?O51 => ?MSG($O,51)#{<<"oadc">> => <<>>},
+          ?O52 => ?MSG($O,52)#{<<"dcs">> => 0, <<"oadc">> => <<>>},
+          ?O53 => ?MSG($O,53)#{<<"dst">> => 1,<<"oadc">> => <<>>,<<"rsn">> => 108},
+          ?O55 => ?BASE($O,55)#{<<"adc">> => <<>>,<<"oadc">> => <<>>},
+          ?O56 => ?MSG($O,56)#{<<"oadc">> => <<>>},
+          ?O57 => ?MSG($O,57),
+          ?O58 => ?MSG($O,58),
+          ?O60 => ?BASE($O,60)#{<<"oadc">> => <<>>,<<"pwd">> => <<>>,<<"styp">> => 1,<<"vers">> => 100},
 
-          <<"R/01 Call Input">> =>                ?ACK($R,01),
-          <<"R/31 SMT Alert">> =>                 ?ACK($R,31)#{<<"sm">> => <<"0000">>},
-          <<"R/51 Submit Short Message">> =>      ?ACK($R,51),
-          <<"R/52 Deliver Short Message">> =>     ?ACK($R,52),
-          <<"R/53 Deliver Notification">> =>      ?ACK($R,53),
-          <<"R/55 Inquiry Message">> =>           ?ACK($R,55),
-          <<"R/56 Delete Message">> =>            ?ACK($R,56),
-          <<"R/57 Response Inquiry Message">> =>  ?ACK($R,57),
-          <<"R/58 Response Delete Message">> =>   ?ACK($R,58),
-          <<"R/60 Session Management">> =>        ?ACK($R,60)}}.
+          ?R01 => ?ACK($R,01),
+          ?R31 => ?ACK($R,31)#{<<"sm">> => <<"0000">>},
+          ?R51 => ?ACK($R,51),
+          ?R52 => ?ACK($R,52),
+          ?R53 => ?ACK($R,53),
+          ?R55 => ?ACK($R,55),
+          ?R56 => ?ACK($R,56),
+          ?R57 => ?ACK($R,57),
+          ?R58 => ?ACK($R,58),
+          ?R60 => ?ACK($R,60)}
+    }.
 
 -ifdef(TEST).
 %%
@@ -203,19 +225,19 @@ ucp_nack(OT, Data) -> ucp("R", OT, [$N, $/ | Data]).
  {"R-60_A", ucp_ack("60","")}
 ]).
 
-% parse_test_() ->
-%     {inparallel,
-%      [{T, fun() ->
-%                   P = case catch parse(D) of
-%                           {'EXIT', Error} ->
-%                               ?debugFmt("~s ~p", [T, Error]),
-%                               Error;
-%                           Pr -> Pr
-%                       end,
-%                   ?assertMatch([_|_], P)
-%           end}
-%       || {T, D} <- ?TESTS
-%      ]}.
+parse_test_() ->
+    {inparallel,
+     [{T, fun() ->
+                  P = case catch parse(D) of
+                          {'EXIT', Error} ->
+                              ?debugFmt("~s ~p", [T, Error]),
+                              Error;
+                          Pr -> Pr
+                      end,
+                  ?assertMatch([_|_], P)
+          end}
+      || {T, D} <- ?TESTS
+     ]}.
 
 encode_decode_test_() ->
     {inparallel,
