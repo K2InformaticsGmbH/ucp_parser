@@ -1,7 +1,7 @@
 -module(ucp).
 
 -export([parse/1, pack/1, parse_stream/1, cmdstr/2, 
-         decode/1, encode/1, info/0]).
+         decode/1, encode/1, info/0, update_checksum/1]).
 
 parse_stream(Bytes) ->
     case re:run(Bytes, "(\x02[^\x02\x03]+)",
@@ -161,6 +161,30 @@ info() ->
           ?R58 => ?ACK($R,58),
           ?R60 => ?ACK($R,60)}
     }.
+
+% 13 bytes header
+%   TRN(2) '/' Len(5) '/' OP(1) '/' OT(2)
+%   3 bytes = TRN '/'
+%   5 bytes = Len
+%   5 bytes = '/' OP(1) '/' OT(2)
+update_checksum(<<16#02, _:3/binary, Len:5/binary
+                  , _:5/binary,  Rest/binary>> = Pdu) ->
+    LenI = binary_to_integer(Len),
+    % if there is a checksum, Rest will have atleast 3 bytes
+    % including / after header and Len field in header will
+    % also indicate the same, hence also replace checksum
+    if (byte_size(Rest) >= 3) andalso LenI > 2 ->
+           BodyLen = LenI-2,
+           <<16#02, Body:BodyLen/binary
+             , _:2/binary, BodyRest/binary>> = Pdu,
+           [A, B|_] = lists:reverse(
+                        integer_to_list(
+                          lists:sum(binary_to_list(Body)), 16)),
+           Checksum = list_to_binary([B,A]),
+           <<16#02, Body:BodyLen/binary
+             , Checksum:2/binary, BodyRest/binary>>;
+       true -> Pdu
+    end.
 
 -ifdef(TEST).
 %%
