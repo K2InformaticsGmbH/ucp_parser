@@ -1,9 +1,4 @@
-.eunit
-deps
-*.o
-*.swp
-*.beam
-*.plt
+_build/
 erl_crash.dump
 ebin
 rel/example_project
@@ -12,3 +7,6 @@ rel/example_project
 rebar.lock
 _build/
 .rebar3/
+rebar.lock
+rebar3.crashdump
+tmp
