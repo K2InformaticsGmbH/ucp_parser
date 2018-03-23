@@ -1,5 +1,5 @@
 -module(ucp).
--include_lib("ucp_defines.hrl").
+-include("ucp_defines.hrl").
 
 -export([parse/1, pack/1, parse_stream/1, cmdstr/2, 
          decode/1, encode/1, info/0, update_checksum/1]).
@@ -35,9 +35,9 @@ parse(Bytes) when is_binary(Bytes) ->
 parse(UcpString) when is_list(UcpString) ->
     case {hd(UcpString), lists:last(UcpString)} of
         {?STX, ?ETX} -> ucp_syntax:parse(UcpString);
-        {_, ?ETX}    -> parse([2|UcpString]);
-        {?STX, _}    -> parse(UcpString++[3]);
-        {_, _}       -> parse([2|UcpString]++[3])
+        {_   , ?ETX} -> parse([2|UcpString]);
+        {?STX,    _} -> parse(UcpString++[3]);
+        {_   ,    _} -> parse([2|UcpString]++[3])
     end.
 
 pack([{A,_}|_] = Ucp) when is_atom(A) ->

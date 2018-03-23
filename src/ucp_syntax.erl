@@ -45,8 +45,8 @@
 
 -module(ucp_syntax).
 
--include_lib("ucp_defines.hrl").
--include_lib("ucp_errors.hrl").
+-include("ucp_defines.hrl").
+-include("ucp_errors.hrl").
 
 %%% API EXPORTS
 
