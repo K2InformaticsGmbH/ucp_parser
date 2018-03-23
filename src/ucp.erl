@@ -1,4 +1,5 @@
 -module(ucp).
+-include_lib("ucp_defines.hrl").
 
 -export([parse/1, pack/1, parse_stream/1, cmdstr/2, 
          decode/1, encode/1, info/0, update_checksum/1]).
@@ -19,7 +20,7 @@ parse_stream(Bytes) ->
 
 parse_frames([], Ucps) -> Ucps;
 parse_frames([[Frame|_]|Frames], Ucps) ->
-    FramePatched = Frame++[3],
+    FramePatched = Frame++[?ETX],
     parse_frames(Frames, [
         case (catch parse(FramePatched)) of
             {'EXIT', _} ->
@@ -33,10 +34,10 @@ parse(Bytes) when is_binary(Bytes) ->
     parse(binary_to_list(Bytes));
 parse(UcpString) when is_list(UcpString) ->
     case {hd(UcpString), lists:last(UcpString)} of
-        {2,3} -> ucp_syntax:parse(UcpString);
-        {_,3} -> parse([2|UcpString]);
-        {2,_} -> parse(UcpString++[3]);
-        {_,_} -> parse([2|UcpString]++[3])
+        {?STX, ?ETX} -> ucp_syntax:parse(UcpString);
+        {_, ?ETX}    -> parse([2|UcpString]);
+        {?STX, _}    -> parse(UcpString++[3]);
+        {_, _}       -> parse([2|UcpString]++[3])
     end.
 
 pack([{A,_}|_] = Ucp) when is_atom(A) ->
@@ -92,8 +93,8 @@ pl_to_map({K, V}, AccMap) ->
 
 -spec(encode(PDU :: map()) -> {ok, binary()} | {error, binary()}).
 encode(PDU) when is_map(PDU) ->
-    [2|T_DATA] = pack(map_to_pl(PDU)),
-    [3|UCP_DATA] = lists:reverse(T_DATA),
+    [?STX|T_DATA] = pack(map_to_pl(PDU)),
+    [?ETX|UCP_DATA] = lists:reverse(T_DATA),
     {ok, list_to_binary(lists:reverse(UCP_DATA))};
 encode(_) ->
     {error, <<"Input to encode should be map">>}.
@@ -167,7 +168,7 @@ info() ->
 %   3 bytes = TRN '/'
 %   5 bytes = Len
 %   5 bytes = '/' OP(1) '/' OT(2)
-update_checksum(<<16#02, _:3/binary, Len:5/binary
+update_checksum(<<?STX, _:3/binary, Len:5/binary
                   , _:5/binary,  Rest/binary>> = Pdu) ->
     LenI = binary_to_integer(Len),
     % if there is a checksum, Rest will have atleast 3 bytes
@@ -175,13 +176,13 @@ update_checksum(<<16#02, _:3/binary, Len:5/binary
     % also indicate the same, hence also replace checksum
     if (byte_size(Rest) >= 3) andalso LenI > 2 ->
            BodyLen = LenI-2,
-           <<16#02, Body:BodyLen/binary
+           <<?STX, Body:BodyLen/binary
              , _:2/binary, BodyRest/binary>> = Pdu,
            [A, B|_] = lists:reverse(
                         integer_to_list(
                           lists:sum(binary_to_list(Body)), 16)),
            Checksum = list_to_binary([B,A]),
-           <<16#02, Body:BodyLen/binary
+           <<?STX, Body:BodyLen/binary
              , Checksum:2/binary, BodyRest/binary>>;
        true -> Pdu
     end.

@@ -473,8 +473,8 @@ make_nack(UCP, Reason) ->
 %%% @doc Parse a message.
 %%% @spec parse(Mess::string()) -> UCP::ucp()
 parse(RAW_UCP_string) ->
-    [2|S] = RAW_UCP_string,
-    {UCP_mess, [$/, CH1, CH2, 3]} = lists:split(length(S) - 4, S),
+    [?STX|S] = RAW_UCP_string,
+    {UCP_mess, [$/, CH1, CH2, ?ETX]} = lists:split(length(S) - 4, S),
 
     Chk = [CH1, CH2],
     case extract_arguments(UCP_mess) of
@@ -627,9 +627,9 @@ prettify(S) ->
 %%% Help function for prettify
 %%% ----------------------------------------------------------
 
-prf(2) ->
+prf(?STX) ->
     " stx ";
-prf(3) ->
+prf(?ETX) ->
     " etx ";
 prf(C) ->
     C.
@@ -801,13 +801,6 @@ make_adc_scts(UCP) ->
     %% TODO: is it current UTC time ??
     SCTS = ucp_arg_syntax:make_time(12, calendar:universal_time()),
     ADC ++ ":" ++ SCTS.
-
-%%% ----------------------------------------------------------
-%%% Adds stx, etx, header and checksum
-%%% ----------------------------------------------------------
-
--define(STX, 2).
--define(ETX, 3).
 
 %%% The extra size, except data fields between stx and etx,
 %%% is constant in UCP mesages. These are the fields:
