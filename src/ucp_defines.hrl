@@ -104,6 +104,12 @@
 -define(UCP_XSER_SERVICE_GSM_UDH_APPLICATION_PORTS, 4).
 
 
+%%% stx and etx
+
+-define(STX, 2).
+-define(ETX, 3).
+
+
 %%% TODO - there are lots more constants in the specification
 
 
