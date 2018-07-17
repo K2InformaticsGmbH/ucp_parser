@@ -171,13 +171,8 @@ make_xsers(Xs) ->
 
 %%% @doc Make xser string.
 %%% @spec make_xser(Xs::xser()) -> string()
-make_xser({Type, Xs = [X|_]}) when is_tuple(X) ->
-    HexData = make_xsers(Xs),
-    make_hex(2, Type) ++ make_hex(2, length(HexData) div 2) ++ HexData;
-make_xser({Type, Data}) when is_binary(Data) ->
-    make_hex(2, Type) ++ make_hex(2, size(Data)) ++ make_hex_coded(Data);
-make_xser({Type, Data}) ->
-    make_hex(2, Type) ++ make_hex(2, length(Data)) ++ make_hex_coded(Data).
+make_xser(#{tt := Type, ll := Len, dd := Data}) ->
+    make_hex(2, Type) ++ make_hex(2, Len) ++ make_hex_coded(Data).
 
 %%% @doc Make 7 bit packet string.
 %%%  This packing is according to the 3G TS 23.038
@@ -313,12 +308,22 @@ parse_ip_v4([IP11,IP12,IP13,
     end.
 
 %%% @doc Convert XSER.
-%%%  An XSer input field consists of a number of hex coded blocks of
-%%%  the format TTNNDDDDDDDD...  where TT is type, NN is size of data
-%%%  field in uncoded bytes and DDDDD.... is the data field, i.e.
-%%%  NN is the number of DD pairs.
-%%%  If the number of characters is odd, we append a single "0" to deal
-%%%  with buggy Three IE systems.
+%%%  Extra Services
+%%%     With the XSer field, one or more additional services can be specified.
+%%%     These services consist of IRA encoded data constructed in the
+%%%     following common format: TTLLDD…
+%%%     TT: represents two HEX characters defining the type of service. For a
+%%%     description of available services refer to section “XSer Extra Services”
+%%%     LL: represents two HEX characters defining the number of octets
+%%%     present in the data field DD. (Note that the number of HEX characters
+%%%     in the data DD is twice the number of octets)
+%%%     DD: represents a stream of HEX characters defining the service
+%%%     specific data itself.
+%%%     If more than one additional service is to be specified in one message,
+%%%     this service information is concatenated without any separators, i.e.
+%%%     TT1LL1DD1…DD1TT2LL2DD2..DD2
+%%%     The above construction is designed such that in the future additional
+%%%     service types can be added to the XSer field. 
 %%% @end
 %%% @spec parse_xsers(Xs::string()) -> xsers()
 parse_xsers(Xs) when length(Xs) rem 2 =:= 1 ->
@@ -328,19 +333,18 @@ parse_xsers(Xs) ->
 
 parse_xsers([], _) ->
     [];
-parse_xsers([T1,T2,N1,N2 | Xs], Level) ->
+parse_xsers([T1,T2,L1,L2 | Xs], Level) ->
     T = parse_hex([T1,T2]),
-    N = parse_hex([N1,N2]),
+    L = parse_hex([L1,L2]),
 
-    {HexData, Xs2} = lists:split(2*N, Xs),
-
+    {HexData, Xs2} = lists:split(2*L, Xs),
     Xser =
         case {Level, T} of
             % NOTE: This is the only nested XSER
             {first, ?UCP_XSER_SERVICE_XDMA_CALL_BACK_NUMBER} ->
-                {T, parse_xsers(HexData, notfirst)};
+                #{tt => T, ll => L, dd => parse_xsers(HexData, notfirst)};
             _ ->
-                {T, parse_hex_coded(HexData)}
+                #{tt => T, ll => L, dd => parse_hex_coded(HexData)}
         end,
 
     [ Xser | parse_xsers(Xs2, Level)].

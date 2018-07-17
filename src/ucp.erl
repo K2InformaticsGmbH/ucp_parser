@@ -87,7 +87,12 @@ pl_to_map(PL) ->
 
 -spec(pl_to_map({atom(), term()}, map()) -> map()).
 pl_to_map({K, V}, AccMap) when is_list(V) ->
-    AccMap#{atom_to_binary(K, utf8) => list_to_binary(V)};
+    Value =
+    case io_lib:printable_list(V) of
+        true -> list_to_binary(V);
+        false -> V
+    end,
+    AccMap#{atom_to_binary(K, utf8) => Value};
 pl_to_map({K, V}, AccMap) ->
     AccMap#{atom_to_binary(K, utf8) => V}.
 
