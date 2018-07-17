@@ -172,6 +172,11 @@ make_xsers(Xs) ->
 %%% @doc Make xser string.
 %%% @spec make_xser(Xs::xser()) -> string()
 make_xser(#{tt := Type, ll := Len, dd := Data}) ->
+    make_xser(Type, Len, Data);
+make_xser(#{<<"tt">> := Type, <<"ll">> := Len, <<"dd">> := Data}) ->
+    make_xser(Type, Len, Data).
+
+make_xser(Type, Len, Data) ->
     make_hex(2, Type) ++ make_hex(2, Len) ++ make_hex_coded(Data).
 
 %%% @doc Make 7 bit packet string.
