@@ -171,13 +171,13 @@ make_xsers(Xs) ->
 
 %%% @doc Make xser string.
 %%% @spec make_xser(Xs::xser()) -> string()
-make_xser(#{tt := Type, ll := Len, dd := Data}) ->
-    make_xser(Type, Len, Data);
-make_xser(#{<<"tt">> := Type, <<"ll">> := Len, <<"dd">> := Data}) ->
-    make_xser(Type, Len, Data).
+make_xser(#{type := Type, data := Data}) ->
+    make_xser(Type, Data);
+make_xser(#{<<"type">> := Type, <<"data">> := Data}) ->
+    make_xser(Type, Data).
 
-make_xser(Type, Len, Data) ->
-    make_hex(2, Type) ++ make_hex(2, Len) ++ make_hex_coded(Data).
+make_xser(Type, Data) ->
+    make_hex(2, Type) ++ make_hex(2, length(Data)) ++ make_hex_coded(Data).
 
 %%% @doc Make 7 bit packet string.
 %%%  This packing is according to the 3G TS 23.038
@@ -347,12 +347,11 @@ parse_xsers([T1,T2,L1,L2 | Xs], Level) ->
         case {Level, T} of
             % NOTE: This is the only nested XSER
             {first, ?UCP_XSER_SERVICE_XDMA_CALL_BACK_NUMBER} ->
-                #{tt => T, ll => L, dd => parse_xsers(HexData, notfirst)};
+                #{type => T, data => parse_xsers(HexData, notfirst)};
             _ ->
-                #{tt => T, ll => L, dd => parse_hex_coded(HexData)}
+                #{type => T, data => parse_hex_coded(HexData)}
         end,
-
-    [ Xser | parse_xsers(Xs2, Level)].
+    [Xser | parse_xsers(Xs2, Level)].
 
 
 %%% @doc Parse 7 bit packet string.
