@@ -86,6 +86,9 @@ pl_to_map(PL) ->
     lists:foldl(fun pl_to_map/2, #{}, PL).
 
 -spec(pl_to_map({atom(), term()}, map()) -> map()).
+pl_to_map({xser, Xsers}, AccMap) ->
+    AccMap#{<<"xser">> => [#{<<"type">> => Type,
+                             <<"data">> => Data} || {Type, Data} <- Xsers]};
 pl_to_map({K, V}, AccMap) when is_list(V) ->
     AccMap#{atom_to_binary(K, utf8) => list_to_binary(V)};
 pl_to_map({K, V}, AccMap) ->
@@ -104,6 +107,9 @@ map_to_pl(PDU) ->
     maps:fold(fun map_to_pl/3, [], PDU).
 
 -spec(map_to_pl(term(), term(), list()) -> list()).
+map_to_pl(<<"xser">>, V, Acc) ->
+    [{xser, [{Type, Data} || 
+             #{<<"type">> := Type, <<"data">> := Data} <- V]} | Acc];
 map_to_pl(K, V, Acc) when is_binary(V) ->
     [{binary_to_atom(K, utf8), binary_to_list(V)} | Acc];
 map_to_pl(K, V, Acc) ->
@@ -226,6 +232,7 @@ ucp_nack(OT, Data) -> ucp("R", OT, [$N, $/ | Data]).
  {"O-51_AlNum", ucp("51","0123456789/0123456789/////////////////3//414243////////////")},
  %{"O-51a_AlNum", ucp("51","0123456789/0D41E110306C1E01/////////////////3//414243////////5039////")},
  {"O-51_Trans", ucp("51","0123456789/0123456789/////////////////4//58595A////////////")},
+ {"O-51_xsers", "74/00109/O/51/0794284428/4110//1//3/0539///////00065/////4/0504/74657374206D657373616765//////////0201F6///2C"},
  %{"O-51a_Trans", ucp("51","0123456789/0D41E110306C1E01/////////////////4//58595A////////5039////")},
  %{"O-52_Num", ucp("52","0123456789/0123456789/////////////311299235959////2//////////////")},
  %{"O-52_AlNum", ucp("52","0123456789/0123456789/////////////311299235959////3//414243////////////")},
